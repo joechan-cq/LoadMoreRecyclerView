@@ -6,6 +6,7 @@ import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -116,7 +117,7 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         if (isBottom) {
             //TODO LoadMore
         } else {
-            if (mScroller.getFinalY() > 0 && mScroller.getFinalY() < footView.getMeasuredHeight()) {
+            if (mScroller.getFinalY() > 0) {
                 mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), mScroller.getFinalX(), -mScroller.getFinalY());
             }
         }
