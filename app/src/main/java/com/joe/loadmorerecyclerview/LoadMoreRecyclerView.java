@@ -60,9 +60,11 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
     private void smoothScrollBy(int dx, int dy) {
         //设置mScroller的滚动偏移量
         if (isBottom) {
+            //已经到了底部，并且还在往上拉，直接返回，不处理事件
             if (mScroller.getFinalY() + dy >= footView.getMeasuredHeight()) {
                 return;
             }
+            //回弹
             if (mScroller.getFinalY() + dy <= 0) {
                 dy = -mScroller.getFinalY();
             }
@@ -70,9 +72,11 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
             mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), 0, dy);
             invalidate();//这里必须调用invalidate()才能保证computeScroll()会被调用，否则不一定会刷新界面，看不到滚动效果
         } else {
+            //往上拉时，距离大于了footview的高度，只让它拉到那么大
             if (mScroller.getFinalY() + dy >= footView.getMeasuredHeight()) {
                 dy = footView.getMeasuredHeight() - mScroller.getFinalY();
                 changeBottom = true;
+                //TODO 拉到footview最大高度时候可以做的事情
             }
             mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), 0, dy);
             invalidate();//这里必须调用invalidate()才能保证computeScroll()会被调用，否则不一定会刷新界面，看不到滚动效果
@@ -170,6 +174,7 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         if (dyConsumed == 0 && dyUnconsumed > 0) {
             smoothScrollBy(dxUnconsumed, dyUnconsumed);
         } else {
+            //其余的未消费的事件，传给父View消费
             dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, mScrollOffset);
         }
     }
@@ -186,6 +191,7 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
             }
         }
         helper.onStopNestedScroll(child);
+        //最后一定要调用这个，告诉父view滑动结束，不然父view的滑动会卡住。
         childHelper.stopNestedScroll();
     }
 
@@ -206,8 +212,10 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        boolean tf = super.dispatchTouchEvent(ev);//这个必须放在前面调用，不然下拉事件会被父view拦截
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                //告诉父View（如果存在），要开始滑动，和SwipeRefreshLayout嵌套时，不调用的话，下拉事件会直接被Swipe拦截。
                 startNestedScroll(SCROLL_AXIS_VERTICAL);
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -215,10 +223,12 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
             case MotionEvent.ACTION_UP:
                 break;
         }
-        return super.dispatchTouchEvent(ev);
+        return tf;
     }
 
     /*==============以下为开放部分的recyclerView方法 ================*/
+    //TODO  如果还需要其他recyclerview的方法，可在下方进行开放。
+
     public void setAdapter(RecyclerView.Adapter adapter) {
         recyclerView.setAdapter(adapter);
     }

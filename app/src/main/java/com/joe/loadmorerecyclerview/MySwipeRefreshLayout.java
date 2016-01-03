@@ -8,7 +8,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 /**
- * Description
+ * Description  仅为了查看与LoadMoreRecyclerView的交互，没有其他作用，使用原生SwipeRefreshLayout即可
  * Created by chenqiao on 2016/1/3.
  */
 public class MySwipeRefreshLayout extends SwipeRefreshLayout {
