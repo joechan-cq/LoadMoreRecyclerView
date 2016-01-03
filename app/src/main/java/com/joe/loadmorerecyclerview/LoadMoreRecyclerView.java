@@ -8,7 +8,6 @@ import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -41,8 +40,8 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         mScroller = new Scroller(context);
         helper = new NestedScrollingParentHelper(this);
         childHelper = new NestedScrollingChildHelper(this);
+        childHelper.setNestedScrollingEnabled(true);
         initView();
-        Log.d("LoadMoreRecyclerView", "init");
     }
 
     private void initView() {
@@ -106,13 +105,11 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     @Override
     public boolean startNestedScroll(int axes) {
-        Log.d("NestChild", "startNestScroll");
         return childHelper.startNestedScroll(axes);
     }
 
     @Override
     public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int[] offsetInWindow) {
-        Log.d("NestChild", "dyConsumed:" + dyConsumed + "  dyUnconsumed:" + dyUnconsumed);
         return childHelper.dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, offsetInWindow);
     }
 
@@ -166,10 +163,14 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         }
     }
 
+    private final int[] mScrollOffset = new int[2];
+
     @Override
     public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
         if (dyConsumed == 0 && dyUnconsumed > 0) {
             smoothScrollBy(dxUnconsumed, dyUnconsumed);
+        } else {
+            dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, mScrollOffset);
         }
     }
 
@@ -185,6 +186,7 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
             }
         }
         helper.onStopNestedScroll(child);
+        childHelper.stopNestedScroll();
     }
 
     @Override
@@ -204,11 +206,8 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        float startX, startY;
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                startX = ev.getX();
-                startY = ev.getY();
                 startNestedScroll(SCROLL_AXIS_VERTICAL);
                 break;
             case MotionEvent.ACTION_MOVE:
