@@ -2,17 +2,20 @@ package com.joe.loadmorerecyclerview;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingChildHelper;
 import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Scroller;
+import android.widget.TextView;
 
 /**
  * Description
@@ -26,6 +29,10 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
     private NestedScrollingChildHelper childHelper;
     private boolean isBottom = false;
     private boolean changeBottom = false;
+    private boolean enableLoad = true;
+    private boolean isLoading = false;
+
+    private View footContentView;
 
     private final int[] mScrollOffset = new int[2];
 
@@ -50,6 +57,8 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         View.inflate(getContext(), R.layout.layout_morerecycler, this);
         recyclerView = (RecyclerView) findViewById(R.id.recycler_content);
         footView = (FrameLayout) findViewById(R.id.layout_footView);
+        footContentView = LayoutInflater.from(getContext()).inflate(R.layout.footview_up, null);
+        footView.addView(footContentView);
     }
 
     //调用此方法滚动到目标位置
@@ -75,10 +84,17 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
             invalidate();//这里必须调用invalidate()才能保证computeScroll()会被调用，否则不一定会刷新界面，看不到滚动效果
         } else {
             //往上拉时，距离大于了footview的高度，只让它拉到那么大
+            if (!isLoading) {
+                //TODO 重置视图
+                ((TextView) footContentView.findViewById(R.id.status_tv)).setText("上拉加载");
+            }
             if (mScroller.getFinalY() + dy >= footView.getMeasuredHeight()) {
                 dy = footView.getMeasuredHeight() - mScroller.getFinalY();
                 changeBottom = true;
-                //TODO 拉到footview最大高度时候可以做的事情
+                //TODO 拉到footView最大高度时候可以做的事情,视图变化
+                if (!isLoading) {
+                    ((TextView) footContentView.findViewById(R.id.status_tv)).setText("松开加载更多");
+                }
             }
             mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), 0, dy);
             invalidate();//这里必须调用invalidate()才能保证computeScroll()会被调用，否则不一定会刷新界面，看不到滚动效果
@@ -147,7 +163,7 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
     /*==========以下为Parent的方法==========*/
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
-        return true;
+        return enableLoad;
     }
 
     @Override
@@ -166,9 +182,11 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         if (dy > 0) {
             dispatchNestedPreScroll(dx, dy, consumed, mScrollOffset);
         }
-        if (isBottom && dy < 0) {
-            smoothScrollBy(dx, dy);
-            consumed[1] = dy;
+        if (dy < 0) {
+            if (isBottom) {
+                smoothScrollBy(dx, dy);
+                consumed[1] = dy;
+            }
         }
     }
 
@@ -184,13 +202,17 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     @Override
     public void onStopNestedScroll(View child) {
-        helper.onStopNestedScroll(child);
         isBottom = changeBottom;
-        if (isBottom) {
-            //TODO LoadMore
+        if (isBottom && !isLoading) {
+            isLoading = true;
+            //TODO LoadMore视图变化
+            ((TextView) footContentView.findViewById(R.id.status_tv)).setText("正在加载");
+            if (listener != null) {
+                listener.onLoading();
+            }
         } else {
-            if (mScroller.getFinalY() > 0) {
-                mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), mScroller.getFinalX(), -mScroller.getFinalY());
+            if (mScroller.getFinalY() > 0 && !isBottom) {
+                smoothScrollBy(0, -mScroller.getFinalY());
             }
         }
         helper.onStopNestedScroll(child);
@@ -254,5 +276,39 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     public RecyclerView.LayoutManager getLayoutManager() {
         return recyclerView.getLayoutManager();
+    }
+
+
+    /**
+     * 加载结束后调用该方法进行footview缩回
+     */
+    public void loadFinished() {
+        isLoading = false;
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (isBottom) {
+                    smoothScrollBy(0, -footView.getMeasuredHeight());
+                }
+            }
+        }, 1500);
+        //TODO 加载完成后的处理，缩回以及视图变化
+        ((TextView) footContentView.findViewById(R.id.status_tv)).setText("加载成功");
+    }
+
+    public void setEnableLoad(boolean tf) {
+        this.enableLoad = tf;
+    }
+
+    private Handler handler = new Handler();
+    /*=============== 监听 ===================*/
+    public onLoadingMoreListener listener;
+
+    public void setOnLoadingListener(onLoadingMoreListener listener) {
+        this.listener = listener;
+    }
+
+    public interface onLoadingMoreListener {
+        void onLoading();
     }
 }
