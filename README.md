@@ -20,3 +20,6 @@
 #效果图
 ![](https://github.com/1030310877/LoadMoreRecyclerView/blob/master/demogif/grid-demo.gif)
 ![](https://github.com/1030310877/LoadMoreRecyclerView/blob/master/demogif/list-demo.gif)
+
+
+###整个项目源码非常简单，可以对footView进行自定义，我在源码中也写了TODO注释。根据实际情况更改即可。
