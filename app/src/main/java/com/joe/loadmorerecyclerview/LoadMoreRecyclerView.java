@@ -27,6 +27,8 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
     private boolean isBottom = false;
     private boolean changeBottom = false;
 
+    private final int[] mScrollOffset = new int[2];
+
     public LoadMoreRecyclerView(Context context) {
         this(context, null);
     }
@@ -161,13 +163,14 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
+        if (dy > 0) {
+            dispatchNestedPreScroll(dx, dy, consumed, mScrollOffset);
+        }
         if (isBottom && dy < 0) {
             smoothScrollBy(dx, dy);
             consumed[1] = dy;
         }
     }
-
-    private final int[] mScrollOffset = new int[2];
 
     @Override
     public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
