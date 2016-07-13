@@ -191,11 +191,13 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         if (dy > 0) {
             dispatchNestedPreScroll(dx, dy, consumed, mScrollOffset);
         }
-        if (dy < 0) {
+        if (dy < -5) {
             if (mScroller.getFinalY() > 0) {
                 smoothScrollBy(dx, dy);
                 consumed[1] = dy;
             }
+        } else if (dy >= -5 && dy < 0) {
+            consumed[1] = dy;
         }
     }
 
