@@ -179,7 +179,6 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         helper.onNestedScrollAccepted(child, target, axes);
     }
 
-
     @Override
     public int getNestedScrollAxes() {
         return helper.getNestedScrollAxes();
@@ -187,17 +186,19 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
-        Log.d("onNested", "dy:" + dy + "   finaly:" + mScroller.getFinalY());
+        if (mScroller.computeScrollOffset()) {
+            return;
+        }
+        //询问swiperefreshlayout是否要处理手指上滑事件
         if (dy > 0) {
             dispatchNestedPreScroll(dx, dy, consumed, mScrollOffset);
         }
-        if (dy < -5) {
+        if (dy < 0) {
+            //如果footerview已经显示出来了，就处理下滑事件，开始收缩footerview
             if (mScroller.getFinalY() > 0) {
                 smoothScrollBy(dx, dy);
                 consumed[1] = dy;
             }
-        } else if (dy >= -5 && dy < 0) {
-            consumed[1] = dy;
         }
     }
 
