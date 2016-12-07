@@ -1,6 +1,5 @@
 package com.joe.loadmorerecyclerview;
 
-import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,17 +13,15 @@ import java.util.ArrayList;
  * Created by chenqiao on 2015/12/31.
  */
 public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
-    Context mContext;
     ArrayList<String> datass;
 
-    public MyAdapter(Context context, ArrayList<String> list) {
-        mContext = context;
+    public MyAdapter(ArrayList<String> list) {
         datass = list;
     }
 
     @Override
     public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        return new MyViewHolder(LayoutInflater.from(mContext).inflate(R.layout.item_layout, parent, false));
+        return new MyViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_layout, parent, false));
     }
 
     @Override

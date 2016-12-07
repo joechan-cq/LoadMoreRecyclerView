@@ -4,7 +4,6 @@ import android.content.Context;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 
 /**
@@ -21,22 +20,27 @@ public class MySwipeRefreshLayout extends SwipeRefreshLayout {
     }
 
     @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        boolean tf = super.onInterceptTouchEvent(ev);
-        Log.d("refresh", "onInterceptTouchEvent:" + tf + "  ev:" + ev.getAction());
-        return tf;
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        boolean tf = super.dispatchTouchEvent(ev);
-        Log.d("refresh", "dispatchTouchevent：" + tf + "  ev:" + ev.getAction());
-        return tf;
-    }
-
-    @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
-        Log.d("refresh", "onStartNestedScroll");
-        return super.onStartNestedScroll(child, target, nestedScrollAxes);
+        boolean tf = super.onStartNestedScroll(child, target, nestedScrollAxes);
+        Log.d("MySwipeRefreshLayout", "onStartNestedScroll: " + tf);
+        return tf;
+    }
+
+    @Override
+    public void onNestedScrollAccepted(View child, View target, int axes) {
+        Log.d("MySwipeRefreshLayout", "onNestedScrollAccepted: ");
+        super.onNestedScrollAccepted(child, target, axes);
+    }
+
+    @Override
+    public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
+        Log.d("MySwipeRefreshLayout", "onNestedPreScroll: " + dy);
+        super.onNestedPreScroll(target, dx, dy, consumed);
+    }
+
+    @Override
+    public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
+        Log.d("MySwipeRefreshLayout", "onNestedScroll: " + dyConsumed + " " + dyUnconsumed);
+        super.onNestedScroll(target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed);
     }
 }

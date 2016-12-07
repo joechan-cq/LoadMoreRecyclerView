@@ -9,13 +9,10 @@ import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.Scroller;
 import android.widget.TextView;
 
 /**
@@ -23,9 +20,9 @@ import android.widget.TextView;
  * Created by chenqiao on 2015/12/31.
  */
 public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollingParent, NestedScrollingChild {
+    private View rootLayout;
     private RecyclerView recyclerView;
     private FrameLayout footView;
-    private Scroller mScroller;
     private NestedScrollingParentHelper helper;
     private NestedScrollingChildHelper childHelper;
     private boolean isBottom = false;
@@ -48,7 +45,6 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     public LoadMoreRecyclerView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        mScroller = new Scroller(context);
         helper = new NestedScrollingParentHelper(this);
         childHelper = new NestedScrollingChildHelper(this);
         childHelper.setNestedScrollingEnabled(true);
@@ -62,28 +58,22 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         //TODO
         footContentView = LayoutInflater.from(getContext()).inflate(R.layout.footview_up, null);
         footView.addView(footContentView);
-    }
-
-    //调用此方法滚动到目标位置
-    public void smoothScrollTo(int fx, int fy) {
-        int dx = fx - mScroller.getFinalX();
-        int dy = fy - mScroller.getFinalY();
-        smoothScrollBy(dx, dy);
+        rootLayout = getChildAt(0);
     }
 
     private void smoothScrollBy(int dx, int dy) {
         //设置mScroller的滚动偏移量
         if (isBottom) {
             //已经到了底部，并且还在往上拉，直接返回，不处理事件
-            if (mScroller.getFinalY() + dy >= footView.getMeasuredHeight()) {
+            if (rootLayout.getScrollY() + dy >= footView.getMeasuredHeight()) {
                 return;
             }
             //回弹
-            if (mScroller.getFinalY() + dy <= 0) {
-                dy = -mScroller.getFinalY();
+            if (rootLayout.getScrollY() + dy <= 0) {
+                dy = -rootLayout.getScrollY();
             }
             changeBottom = false;
-            mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), 0, dy);
+            rootLayout.scrollBy(0, dy);
             invalidate();//这里必须调用invalidate()才能保证computeScroll()会被调用，否则不一定会刷新界面，看不到滚动效果
         } else {
             if (!isLoading) {
@@ -91,8 +81,8 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
                 ((TextView) footContentView.findViewById(R.id.status_tv)).setText("上拉加载");
             }
             //往上拉时，距离大于了footview的高度，只让它拉到那么大
-            if (mScroller.getFinalY() + dy >= footView.getMeasuredHeight()) {
-                dy = footView.getMeasuredHeight() - mScroller.getFinalY();
+            if (rootLayout.getScrollY() + dy >= footView.getMeasuredHeight()) {
+                dy = footView.getMeasuredHeight() - rootLayout.getScrollY();
                 changeBottom = true;
                 //TODO 拉到footView最大高度时候可以做的事情,视图变化
                 if (!isLoading) {
@@ -100,25 +90,13 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
                 }
             } else {
                 //往下拉时，滑动距离大于了当前的偏移值
-                if (mScroller.getFinalY() + dy < 0) {
-                    dy = -mScroller.getFinalY();
+                if (rootLayout.getScrollY() + dy < 0) {
+                    dy = -rootLayout.getScrollY();
                 }
             }
-            mScroller.startScroll(mScroller.getFinalX(), mScroller.getFinalY(), 0, dy);
+            rootLayout.scrollBy(0, dy);
             invalidate();//这里必须调用invalidate()才能保证computeScroll()会被调用，否则不一定会刷新界面，看不到滚动效果
         }
-    }
-
-    @Override
-    public void computeScroll() {
-        //先判断mScroller滚动是否完成
-        if (mScroller.computeScrollOffset()) {
-            //这里调用View的scrollTo()完成实际的滚动
-            getChildAt(0).scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
-            //必须调用该方法，否则不一定能看到滚动效果
-            postInvalidate();
-        }
-        super.computeScroll();
     }
 
     /*==========以下为Child的方法==========*/
@@ -168,9 +146,10 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         return childHelper.dispatchNestedPreFling(velocityX, velocityY);
     }
 
-    /*==========以下为Parent的方法==========*/
+    /*==========以下为Parent的方法,用来接收RecyclerView的滑动事件==========*/
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
+        startNestedScroll(nestedScrollAxes);
         return enableLoad;
     }
 
@@ -186,20 +165,12 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
 
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
-		//询问swiperefreshlayout是否要处理手指上滑事件
-        if (dy > 0) {
+        if (dy < 0 && rootLayout.getScrollY() > 0) {
+            //如果是手指下滑
+            smoothScrollBy(dx, dy);
+            consumed[1] = dy;
+        } else {
             dispatchNestedPreScroll(dx, dy, consumed, mScrollOffset);
-        }
-        if (mScroller.computeScrollOffset()) {
-            mScroller.abortAnimation();
-            return;
-        }
-        if (dy < 0) {
-            //如果footerview已经显示出来了，就处理下滑事件，开始收缩footerview
-            if (mScroller.getFinalY() > 0) {
-                smoothScrollBy(dx, dy);
-                consumed[1] = dy;
-            }
         }
     }
 
@@ -216,7 +187,7 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
     @Override
     public void onStopNestedScroll(View child) {
         isBottom = changeBottom;
-        if (isBottom && !isLoading && mScroller.getFinalY() == footView.getMeasuredHeight()) {
+        if (isBottom && !isLoading && rootLayout.getScrollY() == footView.getMeasuredHeight()) {
             isLoading = true;
             //TODO LoadMore视图变化
             ((TextView) footContentView.findViewById(R.id.status_tv)).setText("正在加载");
@@ -225,13 +196,13 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
             }
         } else {
             isBottom = false;
-            if (mScroller.getFinalY() > 0 && !isBottom) {
-                smoothScrollBy(0, -mScroller.getFinalY());
+            if (rootLayout.getScrollY() > 0 && !isBottom) {
+                smoothScrollBy(0, -rootLayout.getScrollY());
             }
         }
         helper.onStopNestedScroll(child);
         //最后一定要调用这个，告诉父view滑动结束，不然父view的滑动会卡住。
-        childHelper.stopNestedScroll();
+        stopNestedScroll();
     }
 
     @Override
@@ -247,22 +218,6 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
     @Override
     public boolean onNestedPrePerformAccessibilityAction(View target, int action, Bundle args) {
         return false;
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        boolean tf = super.dispatchTouchEvent(ev);//这个必须放在前面调用，不然下拉事件会被父view拦截
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                //告诉父View（如果存在），要开始滑动，和SwipeRefreshLayout嵌套时，不调用的话，下拉事件会直接被Swipe拦截。
-                startNestedScroll(SCROLL_AXIS_VERTICAL);
-                break;
-            case MotionEvent.ACTION_MOVE:
-                break;
-            case MotionEvent.ACTION_UP:
-                break;
-        }
-        return tf;
     }
 
     /*==============以下为开放部分的recyclerView方法 ================*/
@@ -292,6 +247,9 @@ public class LoadMoreRecyclerView extends LinearLayout implements NestedScrollin
         return recyclerView.getLayoutManager();
     }
 
+    public void addOnScrollListener(RecyclerView.OnScrollListener onScrollListener) {
+        recyclerView.addOnScrollListener(onScrollListener);
+    }
 
     /**
      * 加载结束后调用该方法进行footview缩回
